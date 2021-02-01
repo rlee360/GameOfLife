@@ -1,4 +1,4 @@
-# ECE465 HW1 - game_of_life.py 1.0
+# ECE465 HW1 Game Of Life Implementation 1.0
 
 
 ## Overview
