@@ -100,22 +100,29 @@ optional arguments:
                         afterward (default: False)
 ```
 
+Example to run 1000x1000 random data on 4 threads for 20 evolutions, plotting each evolution and saving the output to a space separated text file:
+
+```bash
+python game_of_life.py --random 1000x1000 --threads 4 --output 1000x1000.txt --evolutions 20 --plot
+```
+
 Example to run the gosper glider gun on 4 threads for 100 evolutions, plotting each evolution and saving each evolution to text file in a directory called gosper, finally saving the output to a space separated text file:
 
 ```bash
-python main.py --input gosper_glider.txt --threads 4 --output gosper.txt --evolutions 100 --plot --log ./gosper/
+python game_of_life.py --input gosper_glider.txt --threads 4 \
+                       --output gosper.txt --evolutions 100 --plot --log ./gosper/
 ```
 
 Example to run the 'X' on 4 threads for 1000 evolutions, without plotting any data, except for the final result, and saving the final result to a bitmap:
 
 ```bash
-python main.py -i cross_center.txt -t 4 -o x.bmp -e 1000
+python game_of_life.py -i cross_center.txt -t 4 -o x.bmp -e 1000
 ```
 
 Example to run the professor.jpg on 16 threads for 600 evolutions, without plotting any data, except for the final result, but logging each evolution to a space spearated text file, and the final result to a bmp.
 
 ```bash
-python main.py -i professor.jpg -t 16 -o professor.bmp -e 600 -l professor/
+python game_of_life.py -i professor.jpg -t 16 -o professor.bmp -e 600 -l professor/
 ```
 
 ## License
