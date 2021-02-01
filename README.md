@@ -57,7 +57,7 @@ To install the required packages, use pip:
 pip install -r requirements.txt
 ```
 
-Alternatively, a user can install the packages system wide, which can be performed using
+Alternatively, a user can install the packages systemwide, which can be performed using the distribution's package manager. Users pursuing this option are advised to read the requirements file and locate corresponding packages in their system repositories.
 
 
 ## Usage
