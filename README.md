@@ -37,9 +37,9 @@ As an additional example, we tested a 400x400 pixel 'X', which creates various p
 
 ![](x.gif)
 
-Finally, we tested an image over 600 evolutions:
+Finally, we tested an image over 600 evolutions (thresholded image is shown for 1 second and first evolution is shown for 1 second):
 
-![](professor.gif)
+<img src="professor.gif" width="800"/>
 
 ## Installation
 
