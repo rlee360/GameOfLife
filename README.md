@@ -39,7 +39,7 @@ As an additional example, we tested a 400x400 pixel 'X', which creates various p
 
 Finally, we tested an image over 600 evolutions (thresholded image is shown for 1 second and first evolution is shown for 1 second):
 
-<img src="professor.gif" width="800"/>
+<img src="professor.gif" width="250"/>
 
 ## Installation
 
