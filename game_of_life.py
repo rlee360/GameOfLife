@@ -79,7 +79,7 @@ def main():
     parser.add_argument('-i', '--input', type=str, default=None,
                             help='filename for input with either image data, binary data, or space separated text')
     parser.add_argument('-c', '--cutoff', type=int, default=128,
-                        help='Threshold if input is an image.')
+                        help='where to threshold image values if input is an image (higher the cutoff, the darker the initial image)')
     parser.add_argument('-r', '--random', type=str, default=None,
                         help='initialize a random start matrix. Format: ROWSxCOLUMNS')
     parser.add_argument('-p', '--plot', action='store_true', help='shows each evolution in a matplotlib window')

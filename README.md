@@ -29,17 +29,17 @@ However, we do note diminishing returns as the number of cores increases, which 
 
 The program allows a `-u` option that will perform a unit test with a very basic 1x3 block, which will rotate 90 degrees each evolution.
 
-For a more complex example, we tested the gosper glider gun, which was the, "first known finite pattern with unbounded growth" and was found by Bill Gosper in November 1970" (See second acknowledgement).
+For a more complex example, we tested the gosper glider gun, which was the, "first known finite pattern with unbounded growth and was found by Bill Gosper in November 1970" (See second acknowledgement).
 
-![](gosper.gif)
+<img src="gosper.gif" width="500"/>
 
 As an additional example, we tested a 400x400 pixel 'X', which creates various patterns over many evolutions:
 
-![](x.gif)
+<img src="x.gif" width="500"/>
 
 Finally, we tested an image over 600 evolutions (thresholded image is shown for 1 second and first evolution is shown for 1 second):
 
-<img src="professor.gif" width="400"/>
+<img src="professor.gif" width="500"/>
 
 ## Installation
 
@@ -64,6 +64,13 @@ Alternatively, a user can install the packages system wide, which can be perform
 You must specify either random input data _or_ input from file. Arguments:
 
 ```
+usage: game_of_life.py [-h] [-e EVOLUTIONS] [-t THREADS] [-i INPUT]
+                       [-c CUTOFF] [-r RANDOM] [-p] [-l LOG] [-o OUTPUT] [-u]
+
+A Multi-threaded Python Application that Plays the Game of Life. Must specify
+either random input data or input from file.
+
+optional arguments:
   -h, --help            show this help message and exit
   -e EVOLUTIONS, --evolutions EVOLUTIONS
                         Number of evolutions of game. (default: 1)
@@ -74,17 +81,41 @@ You must specify either random input data _or_ input from file. Arguments:
                         filename for input with either image data, binary
                         data, or space separated text (default: None)
   -c CUTOFF, --cutoff CUTOFF
-                        Threshold if input is an image. (default: 128)
+                        where to threshold image values if input is an image
+                        (higher the cutoff, the darker the initial image)
+                        (default: 128)
   -r RANDOM, --random RANDOM
-                        initialize a random start matrix. Format:
-                        ROWSxCOLUMNSxCHANNELS (default: None)
+                        initialize a random start matrix. Format: ROWSxCOLUMNS
+                        (default: None)
   -p, --plot            shows each evolution in a matplotlib window (default:
                         False)
-  -l LOG, --log LOG     saves each evolution of the input board to the
-                        specified directory as a .npy file (default: None)
+  -l LOG, --log LOG     if specified, saves each evolution of the input board
+                        to the specified directory as a space separated text
+                        file (default: None)
   -o OUTPUT, --output OUTPUT
-                        filename for output to either image data, binary data,
-                        or space separated text (default: life_output.txt)
+                        filename for output to either image data, or space
+                        separated text (default: life_output.txt)
+  -u, --unit            if specified, will run a unit test to ensure the life
+                        function is working properly. Program will exit
+                        afterward (default: False)
+```
+
+Example to run the gosper glider gun on 4 threads for 100 evolutions, plotting each evolution and saving each evolution to text file in a directory called gosper, finally saving the output to a space separated text file:
+
+```bash
+python main.py --input gosper_glider.txt --threads 4 --output gosper.txt --evolutions 100 --plot --log ./gosper/
+```
+
+Example to run the 'X' on 4 threads for 1000 evolutions, without plotting any data, except for the final result, and saving the final result to a bitmap:
+
+```bash
+python main.py -i cross_center.txt -t 4 -o x.bmp -e 1000
+```
+
+Example to run the professor.jpg on 16 threads for 600 evolutions, without plotting any data, except for the final result, but logging each evolution to a space spearated text file, and the final result to a bmp.
+
+```bash
+python main.py -i professor.jpg -t 16 -o professor.bmp -e 600 -l professor/
 ```
 
 ## License
