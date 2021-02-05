@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from multiprocessing import Process, Manager, Pool
 from pathlib import Path
 import pickle
