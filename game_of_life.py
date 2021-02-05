@@ -19,6 +19,19 @@ def fast_random_bool(shape):
     b = np.frombuffer(np.random.bytes(nb), np.uint8, nb)
     return np.unpackbits(b)[:n].reshape(shape).view(np.bool)
 
+# Get middle factors of number
+# Bad algorithm, but numbers are small
+def factorize(num):
+    factors = []
+    for i in range(1,num+1):
+        if num%i == 0:
+            factors.append(i)
+    if len(factors)%2 == 0: # nonsquare
+        return (factors[len(factors)//2 - 1], factors[len(factors)//2])
+    else: # square
+        midpoint = (len(factors)-1)//2
+        return (factors[midpoint], factors[midpoint])
+
 def write_to_file(data, path):
     np.savetxt(path, data*1, delimiter=' ', fmt='%d')
 
@@ -118,11 +131,14 @@ def main():
         input_bytes = fast_random_bool(tuple([int(el) for el in args.random.lower().split('x')][0:2]))
         write_to_file(input_bytes, Path('./') / f"input_{datetime.now().strftime('%y-%m-%d-%H%M%S')}.txt")
 
-    num_threads = np.ceil(np.sqrt(max(1, args.threads))) #ensure at least 1 thread if user specifies 0
+    args.threads = int(np.ceil(args.threads)) # ensure no decimals
+    (num_threads_r, num_threads_c) = factorize(args.threads)
+    # we want more threads in the column direction if odd total because this is
+    # more efficient in terms of memory caching
     num_rows = input_bytes.shape[0]
     num_cols = input_bytes.shape[1]
-    block_size_r = int(np.ceil(num_rows/num_threads))
-    block_size_c = int(np.ceil(num_cols/num_threads))
+    block_size_r = int(np.ceil(num_rows/num_threads_r))
+    block_size_c = int(np.ceil(num_cols/num_threads_c))
     final_result = np.zeros(input_bytes.shape)
     final_result[::,::] = input_bytes
 
@@ -143,8 +159,8 @@ def main():
     oldtime = datetime.now()
 
     results = []
-    for i in range(int(np.ceil(num_rows / block_size_r))):
-        for j in range(int(np.ceil(num_cols / block_size_c))):
+    for i in range(num_threads_r):
+        for j in range(num_threads_c):
             x = get_padded_slice(num_rows, block_size_r, i)
             y = get_padded_slice(num_cols, block_size_c, j)
             results.append(padded[x, y])
