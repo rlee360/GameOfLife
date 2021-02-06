@@ -127,7 +127,7 @@ Example to run the gosper glider gun on 4 threads for 100 evolutions, plotting e
 
 ```bash
 python game_of_life.py --input gosper_glider.txt --threads 4 \
-                       --output gosper.txt --evolutions 100 --plot --log ./gosper/
+                       --output gosper.txt --evolutions 100 --plot --log ./gosper/ --format txt
 ```
 
 Example to run the 'X' on 4 threads for 1000 evolutions, without plotting any data, except for the final result, and saving the final result to a bitmap:
@@ -136,10 +136,10 @@ Example to run the 'X' on 4 threads for 1000 evolutions, without plotting any da
 python game_of_life.py -i cross_center.txt -t 4 -o x.bmp -e 1000
 ```
 
-Example to run the professor.jpg on 16 threads for 600 evolutions, without plotting any data, except for the final result, but logging each evolution to a space spearated text file, and the final result to a bmp.
+Example to run the professor.jpg on 16 threads for 600 evolutions, without plotting any data, except for the final result, but logging each evolution to a bitmap, and the final result to a bmp.
 
 ```bash
-python game_of_life.py -i professor.jpg -t 16 -o professor.bmp -e 600 -l professor/
+python game_of_life.py -i professor.jpg -t 16 -o professor.bmp -e 600 -l professor/ -f bmp
 ```
 
 ## License
