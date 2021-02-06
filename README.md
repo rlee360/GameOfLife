@@ -4,26 +4,28 @@
 ## Overview
 We developed a program to run Conway's Game of Life in a multicore fashion. It can use images, space separated files of zeros and ones to seed the initial state, or seed a random initial state. The program takes an input matrix, slices it into sections, and performs the same Game of Life operations, in parallel, across a user-specifiable number of CPU cores. The algorithm runs in O(n x m x r) where n and m are the dimensions of the initial state, and r is the number of evolutions. We demonstrated this by timing progressively larger, randomly initialized matrices over 10 evolutions, running on 16 threads:
 
-| Dimensions   | Average Time | Factor of Increase from Previous |
-|--------------|--------------|----------------------------------|
-| 100x100      | 0.01897      | N/A                              |
-| 1000x100     | 0.09212      | 4.856                            |
-| 1000x1000    | 0.87536      | 9.502                            |
-| 10000x1000   | 8.78831      | 10.040                           |
-| 10000x10000  | 88.87512     | 10.113                           |
-| 100000x10000 | 896.23381    | 10.084                           |
+| Dimensions   | Average Time (sec) | Factor of Increase from Previous |
+|--------------|--------------------|----------------------------------|
+| 100x100      | 0.00512            | N/A                              |
+| 1000x100     | 0.03810            | 7.441                            |
+| 1000x1000    | 0.26718            | 7.012                            |
+| 10000x1000   | 2.62055            | 9.808                            |
+| 10000x10000  | 26.43361           | 10.087                           |
+| 100000x10000 | 265.06325          | 10.028                           |
 
-We note an increase of only ~5 times from 100x100 to 1000x100, when we would expect there to be an increase of 10 times. We attribute this to there being a minimum time needed to copy the necessary data to each thread and perform the task switch, causing the smaller 100x100 case to take longer than just the time it took to perform the Game of Life operations. However, for very large data, we note that we get a slightly larger than 10 times increase, which we posit could be due to the overhead of slicing large arrays.
+We note an increase of only ~7 times from 100x100 to 1000x100, when we would expect there to be an increase of 10 times. We attribute this to there being a minimum time needed to copy the necessary data to each thread and perform the task switch, and percentage-wise, this time affects the smaller 100x100 case more than the 1000x100 case. However, for very large data, we note that we get a roughly 10 times performance increase.
 
-To demonstrate that running across multiple cores provides an appreciable performance boost, we run a randomly initialized 1000x1000 matrix on a single core and multiple cores:
+To demonstrate that running across multiple cores provides near theoretical performance boost, we run an 8k (7680x4320) image on a single core and multiple cores for 10 evolutions:
 
-| Number of Threads | Average Time | Speed Up Factor |
-|-------------------|--------------|-----------------|
-| 1                 | 9.2289       | N/A             |
-| 4                 | 2.2408       | 4.119           |
-| 16                | 0.8754       | 2.560           |
+| Number of Threads | Average Time (sec) | Speed Up Factor |
+|-------------------|--------------------|-----------------|
+| 1                 | 88.7881            | N/A             |
+| 2                 | 43.8825            | 2.023           |
+| 4                 | 21.5458            | 2.037           |
+| 8                 | 11.9831            | 1.798           |
+| 16                |  8.8253            | 1.3578          |
 
-However, we do note diminishing returns as the number of cores increases, which we again attribute to the overhead of slicing the original matrix for each core to process each evolution.
+However, we do note diminishing returns as the number of cores increases, which we again attribute to the overhead of slicing the original matrix for each core to process each evolution, and then copying the data back to re-create the new matrix.
 
 ## Results
 
