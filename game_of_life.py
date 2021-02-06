@@ -11,6 +11,9 @@ Image.MAX_IMAGE_PIXELS = 1000000000
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+binary_formats = {"jpg", "jpeg", "png", "bmp", "tif"}
+supported_formats = set([i for i in binary_formats] + ["txt"])
+
 # Generating large random matrices tends to be very slow so we use this method
 # https://stackoverflow.com/questions/34485591/memory-efficient-way-to-generate-a-large-numpy-array-containing-random-boolean-v
 def fast_random_bool(shape):
@@ -32,8 +35,12 @@ def factorize(num):
         midpoint = (len(factors)-1)//2
         return (factors[midpoint], factors[midpoint])
 
-def write_to_file(data, path):
-    np.savetxt(path, data.view('uint8'), delimiter=' ', fmt='%d')
+def write_to_file(data, directory, fname, fmt):
+    path = directory / f"{fname}.{fmt}"
+    if fmt in binary_formats:
+        Image.fromarray((255-data*255).astype(np.uint8)).save(path, quality=100)
+    else:
+        np.savetxt(path, data.view('uint8'), delimiter=' ', fmt='%d')
 
 #run the game of life on an array padded
 def life(arr):
@@ -76,8 +83,6 @@ def get_unpadded_slice(cells_per_dim, block_size, offset):
     return x
 
 def main():
-    binary_formats = {"jpg", "jpeg", "png", "bmp"}
-
     parser = argparse.ArgumentParser(description='A Multi-threaded Python Application that Plays the Game of Life. '
                                                  'Must specify either random input data or input from file.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -93,7 +98,9 @@ def main():
                         help='initialize a random start matrix. Format: ROWSxCOLUMNS')
     parser.add_argument('-p', '--plot', action='store_true', help='shows each evolution in a matplotlib window')
     parser.add_argument('-l', '--log', type=str, default=None,
-                        help='if specified, saves each evolution of the input board to the specified directory as a space separated text file')
+                        help='if specified, saves each evolution of the input board to the specified directory')
+    parser.add_argument('-f', '--format', type=str, default='bmp',
+                        help=f'if specified, the program will save each evolution as this format. Only has effect if --log is also set. Independent of the actual output file format. Options={supported_formats}')
     parser.add_argument('-o', '--output', type=str, default='life_output.txt',
                         help='filename for output to either image data, or space separated text')
     parser.add_argument('-u', '--unit', action='store_true',
@@ -110,7 +117,7 @@ def main():
     # Can only specify input or random
     if (args.input is None and args.random is None) or (args.input is not None and args.random is not None):
         parser.print_help()
-        print("\nError: need to specify either --input OR --random, not both", file=sys.stderr)
+        print("\nERROR: need to specify either --input OR --random, not both", file=sys.stderr)
         sys.exit(1)
     elif args.input:
         if '.' in args.input and args.input.split('.')[1] in binary_formats:
@@ -122,10 +129,17 @@ def main():
     elif args.random:
         print('Generating input matrix...')
         input_bytes = fast_random_bool(tuple([int(el) for el in args.random.lower().split('x')][0:2]))
-        print('Writing input matrix to file.')
-        write_to_file(input_bytes, Path('./') / f"input_{datetime.now().strftime('%y-%m-%d-%H%M%S')}.txt")
+        print('Writing input matrix to file...')
+        write_to_file(input_bytes, Path('./'), f"input_{datetime.now().strftime('%y-%m-%d-%H%M%S')}", args.format)
 
-    args.threads = int(np.ceil(args.threads)) # ensure no decimals
+    if args.format not in supported_formats:
+        parser.print_help()
+        print(f"\nERROR: illegal format '{args.format}' specified, "
+               f"please choose from {supported_formats}", file=sys.stderr)
+        sys.exit(1)
+
+    args.evolutions = max(1, int(args.evolutions))
+    args.threads = max(1, int(args.threads)) # ensure no decimals
     (num_threads_r, num_threads_c) = factorize(args.threads)
     # we want more threads in the row direction if odd total because this is
     # more efficient in terms of memory caching
@@ -146,12 +160,14 @@ def main():
     # for ease of scripting we 0 pad the numbers with the needed number of digits
     fname_padding = int(np.log10(args.evolutions))+1
     if args.log:
-        write_to_file(padded[1:-1, 1:-1], Path(args.log) /
-                      "{header}_evo_{evo:0{padding}d}_{curtime}.txt"
+        write_to_file(padded[1:-1, 1:-1], Path(args.log), 
+                      "{header}_evo_{evo:0{padding}d}_{curtime}"
                       .format(header=(args.input.split('.')[0] if args.input else args.random),
                               evo=0,
                               padding=fname_padding,
-                              curtime=datetime.now().strftime('%y-%m-%d-%H%M%S')))
+                              curtime=datetime.now().strftime('%y-%m-%d-%H%M%S'),
+                              fmt=args.format),
+                      args.format)
 
     '''
     for each evolution,
@@ -196,12 +212,14 @@ def main():
                     counter += 1
 
             if args.log:
-                write_to_file(padded[1:-1, 1:-1], Path(args.log) /
-                              "{header}_evo_{evo:0{padding}d}_{curtime}.txt"
-                              .format(header=(args.input.split('.')[0] if args.input else args.random),
-                                      evo=evolution,
-                                      padding=fname_padding,
-                                      curtime=datetime.now().strftime('%y-%m-%d-%H%M%S')))
+                write_to_file(padded[1:-1, 1:-1], Path(args.log), 
+                      "{header}_evo_{evo:0{padding}d}_{curtime}"
+                      .format(header=(args.input.split('.')[0] if args.input else args.random),
+                              evo=evolution,
+                              padding=fname_padding,
+                              curtime=datetime.now().strftime('%y-%m-%d-%H%M%S'),
+                              fmt=args.format),
+                      args.format)
 
         except KeyboardInterrupt:
             print("Interrupt received! Ending now.", file=sys.stderr)
@@ -210,11 +228,13 @@ def main():
     pool.close()
 
     final_result = padded[1:-1, 1:-1]
-    # if the output filetype is an image type that we recognize it, save it as an image. Else as space separated text
-    if '.' in args.output and args.output.split('.')[1] in binary_formats:
-        Image.fromarray((255-final_result*255).astype(np.uint8)).save(args.output, quality=100)
+    # if the output filetype is an image type that we recognize it, 
+    # save it as an image. Else as space separated text
+    if '.' in args.output:
+        out_split = args.output.split('.')
+        write_to_file(final_result, Path('.'), out_split[-2], out_split[-1])
     else:
-        write_to_file(final_result, Path('.') / args.output)
+        write_to_file(final_result, Path('.'), args.output, args.format)
 
     # plot the start and stop states
     if not args.random and '.' in args.input and args.input.split('.')[1] in binary_formats:
