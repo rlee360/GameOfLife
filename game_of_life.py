@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from multiprocessing import Process, Manager, Pool
+from multiprocessing import Process, Pool
 from pathlib import Path
 import pickle
 import sys
@@ -27,42 +27,29 @@ def factorize(num):
         if num%i == 0:
             factors.append(i)
     if len(factors)%2 == 0: # nonsquare
-        return (factors[len(factors)//2 - 1], factors[len(factors)//2])
+        return (factors[len(factors)//2], factors[len(factors)//2 - 1])
     else: # square
         midpoint = (len(factors)-1)//2
         return (factors[midpoint], factors[midpoint])
 
 def write_to_file(data, path):
-    np.savetxt(path, data*1, delimiter=' ', fmt='%d')
+    np.savetxt(path, data.view('uint8'), delimiter=' ', fmt='%d')
 
 #run the game of life on an array padded
 def life(arr):
-    res = np.zeros(arr.shape)
+    res = np.zeros(arr.shape, dtype='uint8')
     for row in range(1, int(arr.shape[0]-1)):
         for col in range(1, int(arr.shape[1]-1)):
-            num_alive = 0
-            for rdir in range(-1,2):
-                for cdir in range(-1,2):
-                    if rdir == 0 and cdir == 0:
-                        continue
-                    if row+rdir < 0 or row+rdir >= arr.shape[0]:
-                        continue
-                    if col+cdir < 0 or col+cdir >= arr.shape[1]:
-                        continue
-                    num_alive += arr[row+rdir, col+cdir]
-            if arr[row, col] == 1:
-                if num_alive <= 1:
-                    res[row, col] = 0
-                elif num_alive == 2 or num_alive == 3:
-                    res[row, col] = 1
-                elif num_alive >= 4:
-                    res[row, col] = 0
-            elif arr[row,col] == 0:
-                if num_alive == 3:
-                    res[row, col] = 1
-                else:
-                    res[row, col] = 0
-    return res
+            res[row, col] = arr[row-1, col-1] + arr[row-1, col] + arr[row-1, col+1] + \
+                            arr[row, col-1] + arr[row, col+1] + \
+                            arr[row+1, col-1] + arr[row+1, col] + arr[row+1, col+1]
+    '''
+    if cell is 1 and has between (1,4) neighbors lives
+    if cell is 0 and has exactly 3 neighbors lives
+    This array-wise logical comparison saves on checking multiple if
+        statements (and thereby branches) for each cell
+    '''
+    return (((arr == 1) & (res > 1) & (res < 4)) | ((arr == 0) & (res == 3))).astype('uint8')
 
 def unit_test_life():
     vertical = np.array([[0, 0, 0, 0, 0],
@@ -79,6 +66,14 @@ def unit_test_life():
 
     assert np.array_equal(horizontal, life(vertical))
     assert np.array_equal(vertical, life(horizontal))
+
+def get_padded_slice(cells_per_dim, block_size, offset):
+    x = slice(offset * block_size, min(cells_per_dim + 2, (offset+1)*block_size + 2))
+    return x
+
+def get_unpadded_slice(cells_per_dim, block_size, offset):
+    x = slice(offset * block_size + 1, min(cells_per_dim + 1, (offset + 1) * block_size + 1))
+    return x
 
 def main():
     binary_formats = {"jpg", "jpeg", "png", "bmp"}
@@ -108,7 +103,7 @@ def main():
     args = parser.parse_args()
 
     if args.unit:
-        print("Unit testing the life() function. Will result in AssertionError if unit test fails.")
+        print("Unit testing the life() function. Will raise AssertionError if unit test fails.")
         unit_test_life()
         sys.exit(0)
 
@@ -120,59 +115,38 @@ def main():
     elif args.input:
         if '.' in args.input and args.input.split('.')[1] in binary_formats:
             image_bytes = np.array(Image.open(args.input).convert('L'))
-            input_bytes = image_bytes < args.cutoff
+            input_bytes = (image_bytes < args.cutoff)
         else:
-            data_load = []
             with open(args.input, 'r') as f:
-                for line in f:
-                    data_load.append([True if int(el) != 0 else False for el in line.strip().split(' ')])
-            input_bytes = np.array(data_load)
+                input_bytes = np.loadtxt(f, delimiter=' ').astype('uint8')
     elif args.random:
+        print('Generating input matrix...')
         input_bytes = fast_random_bool(tuple([int(el) for el in args.random.lower().split('x')][0:2]))
+        print('Writing input matrix to file.')
         write_to_file(input_bytes, Path('./') / f"input_{datetime.now().strftime('%y-%m-%d-%H%M%S')}.txt")
 
     args.threads = int(np.ceil(args.threads)) # ensure no decimals
     (num_threads_r, num_threads_c) = factorize(args.threads)
-    # we want more threads in the column direction if odd total because this is
+    # we want more threads in the row direction if odd total because this is
     # more efficient in terms of memory caching
     num_rows = input_bytes.shape[0]
     num_cols = input_bytes.shape[1]
     block_size_r = int(np.ceil(num_rows/num_threads_r))
     block_size_c = int(np.ceil(num_cols/num_threads_c))
-    final_result = np.zeros(input_bytes.shape)
-    final_result[::,::] = input_bytes
 
-    padded = np.zeros((num_rows+2, num_cols+2), dtype='int')
-
-    def get_padded_slice(cells_per_dim, block_size, offset):
-        x = slice( max(0, offset * (block_size)), min(cells_per_dim + 2, offset * block_size + block_size + 2) )
-        return x
-
-    def get_unpadded_slice(index, offset):
-        return slice(index * offset, (index + 1) * offset)
+    padded = np.zeros((num_rows+2, num_cols+2), dtype='uint8')
+    padded[1:-1, 1:-1] = input_bytes
 
     if args.plot:
         plt.figure(figsize=(24, 24))
-        img = plt.imshow(final_result, cmap='Greys')
+        img = plt.imshow(padded[1:-1, 1:-1], cmap='Greys')
         plt.pause(0.001)
-
-    oldtime = datetime.now()
-
-    results = []
-    for i in range(num_threads_r):
-        for j in range(num_threads_c):
-            x = get_padded_slice(num_rows, block_size_r, i)
-            y = get_padded_slice(num_cols, block_size_c, j)
-            results.append(padded[x, y])
-
-    print(f"Starting {len(results)} threads", file=sys.stderr)
-    pool = Pool(len(results))
     
     # save the initial matrix to file.
-    # for ease of scripting, we 0 pad the numbers
+    # for ease of scripting we 0 pad the numbers with the needed number of digits
     fname_padding = int(np.log10(args.evolutions))+1
     if args.log:
-        write_to_file(final_result, Path(args.log) / 
+        write_to_file(padded[1:-1, 1:-1], Path(args.log) /
                       "{header}_evo_{evo:0{padding}d}_{curtime}.txt"
                       .format(header=(args.input.split('.')[0] if args.input else args.random),
                               evo=0,
@@ -185,19 +159,23 @@ def main():
     append it to a list
     and use map to distribute this list to the pool of processes.
     
-    we catch keyboard interrupts so the user can cut the program at anytime
-    and view the result.
+    we catch keyboard interrupts so the user can stop the plotting
     '''
+
+    oldtime = datetime.now()
+
+    print(f"Starting {num_threads_r * num_threads_c} threads")
+    pool = Pool(num_threads_r * num_threads_c)
+
     for evolution in range(1, args.evolutions + 1):
         try:
             if args.plot:
-                img.set_data(final_result)
+                img.set_data(padded[1:-1, 1:-1])
                 plt.pause(0.0001)
 
-            padded[1:num_rows+1, 1:num_cols+1] = final_result
             results = []
-            for i in range(int(np.ceil(num_rows / block_size_r))):
-                for j in range(int(np.ceil(num_cols / block_size_c))):
+            for i in range(num_threads_r):
+                for j in range(num_threads_c):
                     x = get_padded_slice(num_rows, block_size_r, i)
                     y = get_padded_slice(num_cols, block_size_c, j)
                     results.append(padded[x, y])
@@ -211,13 +189,14 @@ def main():
             results = pool.map(life, results)
 
             counter = 0
-            for i in range(int(np.ceil(num_rows / block_size_r))):
-                for j in range(int(np.ceil(num_cols / block_size_c))):
-                    final_result[get_unpadded_slice(i, block_size_r), get_unpadded_slice(j, block_size_c)] = results[counter][1:-1, 1:-1]
+            for i in range(num_threads_r):
+                for j in range(num_threads_c):
+                    padded[get_unpadded_slice(num_rows, block_size_r, i),
+                           get_unpadded_slice(num_cols, block_size_c, j)] = results[counter][1:-1, 1:-1]
                     counter += 1
 
             if args.log:
-                write_to_file(final_result, Path(args.log) / 
+                write_to_file(padded[1:-1, 1:-1], Path(args.log) /
                               "{header}_evo_{evo:0{padding}d}_{curtime}.txt"
                               .format(header=(args.input.split('.')[0] if args.input else args.random),
                                       evo=evolution,
@@ -230,6 +209,7 @@ def main():
 
     pool.close()
 
+    final_result = padded[1:-1, 1:-1]
     # if the output filetype is an image type that we recognize it, save it as an image. Else as space separated text
     if '.' in args.output and args.output.split('.')[1] in binary_formats:
         Image.fromarray((255-final_result*255).astype(np.uint8)).save(args.output, quality=100)
