@@ -76,7 +76,8 @@ You must specify either random input data _or_ input from file. Arguments:
 
 ```
 usage: game_of_life.py [-h] [-e EVOLUTIONS] [-t THREADS] [-i INPUT]
-                       [-c CUTOFF] [-r RANDOM] [-p] [-l LOG] [-o OUTPUT] [-u]
+                       [-c CUTOFF] [-r RANDOM] [-p] [-l LOG] [-f FORMAT]
+                       [-o OUTPUT] [-u]
 
 A Multi-threaded Python Application that Plays the Game of Life. Must specify
 either random input data or input from file.
@@ -101,8 +102,13 @@ optional arguments:
   -p, --plot            shows each evolution in a matplotlib window (default:
                         False)
   -l LOG, --log LOG     if specified, saves each evolution of the input board
-                        to the specified directory as a space separated text
-                        file (default: None)
+                        to the specified directory (default: None)
+  -f FORMAT, --format FORMAT
+                        if specified, the program will save each evolution as
+                        this format. Only has effect if --log is also set.
+                        Independent of the actual output file format.
+                        Options={'bmp', 'jpg', 'jpeg', 'png', 'txt', 'tif'}
+                        (default: bmp)
   -o OUTPUT, --output OUTPUT
                         filename for output to either image data, or space
                         separated text (default: life_output.txt)
