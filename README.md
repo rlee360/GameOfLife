@@ -1,5 +1,14 @@
-# ECE465 HW1 Game Of Life Implementation 1.0
+# ECE465 HW1 Conway's Game Of Life Implementation
 
+## Conway's Game of Life
+Conway's Game of Life is a zero player cellular automaton created by John Conway. The universe is a two dimensional grid of cells that are either alive or dead and interact with each of their 8 neighbors. At each time step (evolution), the following rules apply:
+
+1. A live cell with less than two neighbors dies, as if by underpopulation
+2. A live cell with two to three neighbors lives
+3. A live cell with more than three neighbors dies, as if by over population
+4. A dead cell with exactly three neighbors becomes live as if by reproduction.
+
+Following these rules, an initial configuration can evolve to create various patterns. The game is Turing complete, and can simulate any other Turing Machine.
 
 ## Overview
 We developed a program to run Conway's Game of Life in a multicore fashion. It can use images, space separated files of zeros and ones to seed the initial state, or seed a random initial state. The program takes an input matrix, slices it into sections, and performs the same Game of Life operations, in parallel, across a user-specifiable number of CPU cores. The algorithm runs in O(n x m x r) where n and m are the dimensions of the initial state, and r is the number of evolutions. We demonstrated this by timing progressively larger, randomly initialized matrices over 10 evolutions, running on 16 threads:
@@ -131,6 +140,7 @@ python game_of_life.py -i professor.jpg -t 16 -o professor.bmp -e 600 -l profess
 All rights reserved.
 
 ## Acknowledgements
+https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life for a detailed explanation of the history and premise of the game of life.
 https://stackoverflow.com/questions/34485591/memory-efficient-way-to-generate-a-large-numpy-array-containing-random-boolean-v
 for fast random boolean generation
 
