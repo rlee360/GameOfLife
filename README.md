@@ -70,12 +70,21 @@ pip install -r requirements.txt
 
 Alternatively, a user can install the packages system-wide, which can be performed using the system-wide pip or the distribution's package manager. Users pursuing this option are advised to read the requirements file and locate corresponding packages in their system repositories.
 
+The next step is to set up SSH connections to all nodes. There is no other way to run the program; the simplest case would be running one node which is the same machine as the one running the program. The instructions must still be followed. To begin, install a standards-compliant SSH server and enable it. On every machine, create a user with the same name as the user that will be running the program. Set up passwordless authentication on the SSH servers for those users as documented (OpenSSH users might find the `ssh-copy-id` helper script useful). Create a hostfile with the following format:
+
+```
+HOST1 NUM_THREADS_1
+HOST2 NUM_THREADS_2
+...
+```
+
+for all hosts. Finally, ensure that the full path of the working directory of the machine running the program is mirrored on every node.
 
 ## Usage
 You must specify either random input data _or_ input from file. Arguments:
 
 ```
-usage: game_of_life.py [-h] [-e EVOLUTIONS] [-t THREADS] [-i INPUT]
+usage: launcher.sh HOSTFILE_PATH [-h] [-e EVOLUTIONS] [-t THREADS] [-i INPUT]
                        [-c CUTOFF] [-r RANDOM] [-p] [-l LOG] [-f FORMAT]
                        [-o OUTPUT] [-u]
 
@@ -120,26 +129,26 @@ optional arguments:
 Example to run 1000x1000 random data on 4 threads for 20 evolutions, plotting each evolution and saving the output to a space separated text file:
 
 ```bash
-python game_of_life.py --random 1000x1000 --threads 4 --output 1000x1000.txt --evolutions 20 --plot
+./launcher.sh hostfile --random 1000x1000 --threads 4 --output 1000x1000.txt --evolutions 20 --plot
 ```
 
 Example to run the gosper glider gun on 4 threads for 100 evolutions, plotting each evolution and saving each evolution to text file in a directory called gosper, finally saving the output to a space separated text file:
 
 ```bash
-python game_of_life.py --input gosper_glider.txt --threads 4 \
+./launcher.sh hostfile --input gosper_glider.txt --threads 4 \
                        --output gosper.txt --evolutions 100 --plot --log ./gosper/ --format txt
 ```
 
 Example to run the 'X' on 4 threads for 1000 evolutions, without plotting any data, except for the final result, and saving the final result to a bitmap:
 
 ```bash
-python game_of_life.py -i cross_center.txt -t 4 -o x.bmp -e 1000
+./launcher.sh hostfile -i cross_center.txt -t 4 -o x.bmp -e 1000
 ```
 
 Example to run the professor.jpg on 16 threads for 600 evolutions, without plotting any data, except for the final result, but logging each evolution to a bitmap, and the final result to a bmp.
 
 ```bash
-python game_of_life.py -i professor.jpg -t 16 -o professor.bmp -e 600 -l professor/ -f bmp
+./launcher.sh hostfile -i professor.jpg -t 16 -o professor.bmp -e 600 -l professor/ -f bmp
 ```
 
 ## License

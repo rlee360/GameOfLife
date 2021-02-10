@@ -10,6 +10,7 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = 1000000000
 import matplotlib.pyplot as plt
 from datetime import datetime
+from scoop import futures
 
 binary_formats = {"jpg", "jpeg", "png", "bmp", "tif"}
 supported_formats = set([i for i in binary_formats] + ["txt"])
@@ -181,7 +182,6 @@ def main():
     oldtime = datetime.now()
 
     print(f"Starting {num_threads_r * num_threads_c} threads")
-    pool = Pool(num_threads_r * num_threads_c)
 
     for evolution in range(1, args.evolutions + 1):
         try:
@@ -202,7 +202,7 @@ def main():
             else:
                 print(f"Running Evolution {evolution}, Time elapsed {(newtime - oldtime)}")
             oldtime = newtime
-            results = pool.map(life, results)
+            results = list(futures.map(life, results))
 
             counter = 0
             for i in range(num_threads_r):
@@ -225,7 +225,6 @@ def main():
             print("Interrupt received! Ending now.", file=sys.stderr)
             break
 
-    pool.close()
 
     final_result = padded[1:-1, 1:-1]
     # if the output filetype is an image type that we recognize it, 
@@ -249,5 +248,5 @@ def main():
 
     plt.show()
 
-
-main()
+if __name__ == "__main__":
+    main()
