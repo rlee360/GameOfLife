@@ -15,5 +15,4 @@ for host in $(awk '{print $1}' $1); do
 done
 ARGS=("$@")
 THREADS=$(awk '{SUM+=$2}END{print SUM}' $1)
-scp "$SCRIPT" Yogacomp3:`pwd`
 python -m scoop --hostfile $1 --tunnel game_of_life.py ${ARGS[@]:1} -t $THREADS
