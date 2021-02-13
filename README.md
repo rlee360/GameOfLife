@@ -36,6 +36,15 @@ To demonstrate that running across multiple cores provides near theoretical perf
 
 However, we do note diminishing returns as the number of cores increases, which we again attribute to the overhead of slicing the original matrix for each core to process each evolution, and then copying the data back to re-create the new matrix.
 
+When running on multiple nodes, we achieve the expected increase in performance. To test this, we ran an 8k (7680x4320) image on 4 cores on one machine, and then on 8 cores across two machines (4 each), for 10 evolutions each, and note the times:
+
+| Number of Threads            | Average Time (sec) | Speed Up Factor |
+|------------------------------|--------------------|-----------------|
+| 4 (single Node, multithread) | 23.161             | N/A             |
+| 8 (two Nodes, multithread)   | 12.128             | 1.909           |
+
+We note that we observe close to the theoretical increase in performance when switching to multiple nodes.
+
 ## Results
 
 The program allows a `-u` option that will perform a unit test with a very basic 1x3 block, which will rotate 90 degrees each evolution.
@@ -65,6 +74,8 @@ source env/bin/activate  #activates the virtual environment
 
 To install the required packages, use pip:
 ```bash
+pip install --upgrade pip
+pip install wheel
 pip install -r requirements.txt
 ```
 
@@ -78,7 +89,7 @@ HOST2 NUM_THREADS_2
 ...
 ```
 
-for all hosts. Finally, ensure that the full path of the working directory of the machine running the program is mirrored on every node.
+for all hosts. Finally, ensure that the *full path* of the working directory of the machine running the program is mirrored on every node. In essence, the local node must be able to ssh into each worker without the need for a password and each worker must be able to ssh back to the local node without a password.
 
 ## Usage
 You must specify either random input data _or_ input from file. Arguments:
