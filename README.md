@@ -99,7 +99,7 @@ localhost:6001   4 user /home/user/venv/bin/python /home/user/game_of_life_worke
 192.168.0.100:6001 4 user2 /tmp/venv/bin/python /tmp/game_of_life_worker.py /tmp/worker_logs.txt
 ```
 
-Here we specify that the main script will SSH into user@localhost (on port 22) and start a worker script listening on port 6001. The worker script is located inside `/home/user/` and will be run using the interpreter located in a virtual environment in the same directory. Any logs from the worker script will be located in a `worker_logs.txt` file. Next the main script will SSH into user2@192.168.0.100 (once again on port 22), and start a worker to listen on port 6001. This hostfile structure allows a user to specify the exact interpreters and scripts that the workers will run.
+Here we specify that the main script will SSH into user@localhost (on port 22) and start a 4 thread worker script listening on port 6001. The worker script is located inside `/home/user/` and will be run using the interpreter located in a virtual environment in the same directory. Any logs from the worker script will be located in a `worker_logs.txt` file. Next the main script will SSH into user2@192.168.0.100 (once again on port 22), and start a 4 thread worker to listen on port 6001. This hostfile structure allows a user to specify the exact interpreters and scripts that the workers will run.
 
 The main script, when complete, will send an exit message to all of the workers, cleaning up the idle processes.
 
