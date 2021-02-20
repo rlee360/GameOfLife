@@ -79,7 +79,14 @@ pip install wheel
 pip install -r requirements.txt
 ```
 
-It is **imperative** for users to upgrade pip and install wheel before installing the requirements, as cryptography, one of the package dependencies, requires a Rust compiler if it cannot use the pre-built python wheel.
+It is **imperative** for users to upgrade pip and install wheel before installing the requirements, as cryptography, one of the package dependencies, requires a Rust compiler if it cannot use the pre-built python wheel. If installing the requirements fails, then it is still possible to install manually using:
+
+```bash
+pip install --upgrade pip
+pip install wheel
+pip install numpy matplotlib pillow cryptography
+pip install paramiko
+```
 
 Alternatively, a user can install the packages system-wide, which can be performed using the system-wide pip or the distribution's package manager. Users pursuing this option are advised to read the requirements file and locate corresponding packages in their system repositories.
 
