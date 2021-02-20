@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 from multiprocessing import Process, Pool
 from pathlib import Path
 import pickle
@@ -10,7 +10,7 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = 1000000000
 import matplotlib.pyplot as plt
 from datetime import datetime
-from scoop import futures
+from broker import Broker
 
 binary_formats = {"jpg", "jpeg", "png", "bmp", "tif"}
 supported_formats = set([i for i in binary_formats] + ["txt"])
@@ -21,7 +21,7 @@ def fast_random_bool(shape):
     n = np.prod(shape)
     nb = -(-n // 8)     # ceiling division
     b = np.frombuffer(np.random.bytes(nb), np.uint8, nb)
-    return np.unpackbits(b)[:n].reshape(shape).view(np.bool)
+    return np.unpackbits(b)[:n].reshape(shape).view(bool)
 
 # Get middle factors of number
 # Bad algorithm, but numbers are small
@@ -89,8 +89,8 @@ def main():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-e', '--evolutions', type=int, default=1,
                         help='Number of evolutions of game.')
-    parser.add_argument('-t', '--threads', type=int, default=4,
-                        help='Suggestion for number of threads to run the program on.')
+    parser.add_argument('--hosts', type=str, default=None,
+                        help='Specifies the hosts and number of threads on each host')
     parser.add_argument('-i', '--input', type=str, default=None,
                             help='filename for input with either image data, binary data, or space separated text')
     parser.add_argument('-c', '--cutoff', type=int, default=128,
@@ -102,7 +102,7 @@ def main():
                         help='if specified, saves each evolution of the input board to the specified directory')
     parser.add_argument('-f', '--format', type=str, default='bmp',
                         help=f'if specified, the program will save each evolution as this format. Only has effect if --log is also set. Independent of the actual output file format. Options={supported_formats}')
-    parser.add_argument('-o', '--output', type=str, default='life_output.txt',
+    parser.add_argument('-o', '--output', type=str, default='life_output.bmp',
                         help='filename for output to either image data, or space separated text')
     parser.add_argument('-u', '--unit', action='store_true',
                         help='if specified, will run a unit test to ensure the life function is working properly. Program will exit afterward')
@@ -139,9 +139,15 @@ def main():
                f"please choose from {supported_formats}", file=sys.stderr)
         sys.exit(1)
 
+    if args.hosts is not None:
+        broke = Broker(args.hosts)
+    else:
+        parser.print_help()
+        print(f"\nERROR: did not specify hosts file", file=sys.stderr)
+        sys.exit(1)
+
     args.evolutions = max(1, int(args.evolutions))
-    args.threads = max(1, int(args.threads)) # ensure no decimals
-    (num_threads_r, num_threads_c) = factorize(args.threads)
+    (num_threads_r, num_threads_c) = factorize(broke.total_threads)
     # we want more threads in the row direction if odd total because this is
     # more efficient in terms of memory caching
     num_rows = input_bytes.shape[0]
@@ -181,7 +187,8 @@ def main():
 
     oldtime = datetime.now()
 
-    print(f"Starting {num_threads_r * num_threads_c} threads")
+    # pool = Pool(broke.local_threads)
+    # print(f"Started {broke.local_threads} threads")
 
     for evolution in range(1, args.evolutions + 1):
         try:
@@ -198,11 +205,16 @@ def main():
 
             newtime = datetime.now()
             if evolution == 1:
-                print(f"Running Evolution {evolution}, Time elapsed N/A")
+                print(f"Starting Evolution {evolution}, Time elapsed since last evolution N/A")
             else:
-                print(f"Running Evolution {evolution}, Time elapsed {(newtime - oldtime)}")
+                print(f"Starting Evolution {evolution}, Time elapsed since last evolution {(newtime - oldtime)}")
             oldtime = newtime
-            results = list(futures.map(life, results))
+
+
+            broke.send_off(results[broke.local_threads:])
+            print(f'Sent to all workers!')
+            results = broke.receive()
+            print(f'Received from all workers!')
 
             counter = 0
             for i in range(num_threads_r):
@@ -225,28 +237,28 @@ def main():
             print("Interrupt received! Ending now.", file=sys.stderr)
             break
 
+    broke.close()
 
     final_result = padded[1:-1, 1:-1]
-    # if the output filetype is an image type that we recognize it, 
-    # save it as an image. Else as space separated text
-    if '.' in args.output:
-        out_split = args.output.split('.')
-        write_to_file(final_result, Path('.'), out_split[-2], out_split[-1])
-    else:
-        write_to_file(final_result, Path('.'), args.output, args.format)
 
     # plot the start and stop states
     if not args.random and '.' in args.input and args.input.split('.')[1] in binary_formats:
-        fig, (ax1, ax2, ax3) = plt.subplots(figsize=(24, 24), nrows=1, ncols=3)
+        fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3, dpi=1000)
         ax1.imshow(255 - image_bytes, cmap='Greys')
         ax2.imshow(input_bytes, cmap='Greys')
         ax3.imshow(final_result, cmap='Greys')
     else:
-        fig, (ax1, ax2) = plt.subplots(figsize=(8.5,11), nrows=1, ncols=2)
+        fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, dpi=1000)
         ax1.imshow(input_bytes, cmap='Greys')
         ax2.imshow(final_result, cmap='Greys')
 
-    plt.show()
+    # fig.tight_layout()
 
-if __name__ == "__main__":
-    main()
+    if '.' in args.output:
+        out_split = args.output.split('.')
+        write_to_file(final_result, Path('.'), out_split[-2], out_split[-1])
+        plt.savefig(f"{out_split[-2]}_comparison_plot.png")
+    else:
+        write_to_file(final_result, Path('.'), args.output, args.format)
+
+main()
